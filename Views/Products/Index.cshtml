@@ -1,0 +1,183 @@
+@model IEnumerable<ProductManagementSystem.Models.Product>
+
+@{
+    ViewData["Title"] = "Product Inventory";
+    var productList = Model.ToList();
+    var totalProducts = productList.Count;
+    var totalValue = productList.Sum(p => p.Price * p.Stock);
+    var lowStockCount = productList.Count(p => p.Stock > 0 && p.Stock <= 5);
+    var outOfStockCount = productList.Count(p => p.Stock == 0);
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1 text-primary fw-bold">Product Management</h1>
+        <p class="text-muted small mb-0">Overview and control of your catalog, inventory and pricing.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Create" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+            </svg>
+            Add New Product
+        </a>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+            <div class="text-muted small fw-semibold">TOTAL PRODUCTS</div>
+            <div class="fs-4 fw-bold text-dark mt-1">@totalProducts</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+            <div class="text-muted small fw-semibold">INVENTORY VALUE</div>
+            <div class="fs-4 fw-bold text-success mt-1">₹@totalValue.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+            <div class="text-muted small fw-semibold">LOW STOCK (≤5)</div>
+            <div class="fs-4 fw-bold text-warning mt-1">@lowStockCount</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
+            <div class="text-muted small fw-semibold">OUT OF STOCK</div>
+            <div class="fs-4 fw-bold text-danger mt-1">@outOfStockCount</div>
+        </div>
+    </div>
+</div>
+
+@if (!productList.Any())
+{
+    <div class="card border-0 shadow-sm rounded-3 p-5 text-center bg-white my-4">
+        <div class="mb-3 text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-box-seam opacity-50" viewBox="0 0 16 16">
+                <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
+            </svg>
+        </div>
+        <h4 class="fw-bold text-dark mb-2">No Products in Inventory</h4>
+        <p class="text-muted mb-4">Start managing your catalog by adding your first product.</p>
+        <div>
+            <a asp-action="Create" class="btn btn-primary px-4 py-2">
+                + Add Your First Product
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
+        <div class="p-3 border-bottom d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+            <div class="position-relative flex-grow-1" style="max-width: 380px;">
+                <input type="text" id="productSearchInput" class="form-control ps-4" placeholder="Search by name, category or price..." onkeyup="filterProductsTable()" />
+                <span class="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted small">
+                    🔍
+                </span>
+            </div>
+            <span class="text-muted small">Showing <strong>@totalProducts</strong> product(s)</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="productsTable">
+                <thead class="table-light text-uppercase small text-muted border-top-0">
+                    <tr>
+                        <th style="width: 80px;" class="ps-3">Image</th>
+                        <th>Product Details</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock Status</th>
+                        <th class="text-end pe-3" style="width: 160px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var product in productList)
+                {
+                    <tr>
+                        <td class="ps-3">
+                            @if (!string.IsNullOrEmpty(product.ImagePath))
+                            {
+                                <img src="@product.ImagePath"
+                                     alt="@product.Name"
+                                     class="rounded border"
+                                     style="width: 56px; height: 56px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="rounded border bg-light text-muted d-flex align-items-center justify-content-center"
+                                     style="width: 56px; height: 56px; font-size: 0.7rem;">
+                                    No Pic
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">@product.Name</div>
+                            @if (!string.IsNullOrEmpty(product.Description))
+                            {
+                                <div class="text-muted small text-truncate" style="max-width: 280px;" title="@product.Description">
+                                    @product.Description
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                @product.Category
+                            </span>
+                        </td>
+                        <td class="fw-bold text-dark">
+                            ₹@product.Price.ToString("N2")
+                        </td>
+                        <td>
+                            @if (product.Stock == 0)
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    Out of Stock (0)
+                                </span>
+                            }
+                            else if (product.Stock <= 5)
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    Low Stock (@product.Stock)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    In Stock (@product.Stock)
+                                </span>
+                            }
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-outline-primary" title="Edit">
+                                    Edit
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@product.Id" class="btn btn-outline-danger" title="Delete">
+                                    Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function filterProductsTable() {
+            const query = document.getElementById('productSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#productsTable tbody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    </script>
+}
